@@ -1,46 +1,50 @@
 import tkinter as tk
 from tkinter import filedialog
 import graphviz
+from tkinter import ttk
 
 class Nodo:
-    def __init__(self, tablero):
-        self.tablero = tablero
-        self.siguiente = None
-
-class Tablero:
     def __init__(self, nombre, filas, columnas, estructura):
         self.nombre = nombre
         self.filas = filas
         self.columnas = columnas
         self.estructura = estructura
+        self.siguiente = None
+
+class LinkedList:
+    def __init__(self):
+        self.head = None
+
+    def agregar(self, nodo):
+        if not self.head:
+            self.head = nodo
+        else:
+            current = self.head
+            while current.siguiente:
+                current = current.siguiente
+            current.siguiente = nodo
+
+    def __iter__(self):
+        current = self.head
+        while current:
+            yield current
+            current = current.siguiente
 
 def abrir_archivos():
     archivos = filedialog.askopenfilenames(initialdir='C:/Users/danis/OneDrive/Documents/Quinto Semestre/IPC2/[IPC2]Proyecto2_202202768', title='Explorador')
     if archivos:
         global tableros
-        tableros = None
+        tableros = LinkedList()
         for archivo in archivos:
             try:
                 with open(archivo, 'r', encoding='utf-8') as file:
                     datos = file.readlines()  # Leer el contenido del archivo línea por línea
-                    nuevos_tableros = leer_tableros(datos)  # Procesar los datos y crear los tableros
-                    if nuevos_tableros:
-                        # Concatenar las listas de tableros
-                        if tableros is None:
-                            tableros = nuevos_tableros
-                        else:
-                            actual = tableros
-                            while actual.siguiente:
-                                actual = actual.siguiente
-                            actual.siguiente = nuevos_tableros
+                    leer_tableros(datos)  # Procesar los datos y crear los tableros
             except Exception as e:
                 print("Error al cargar archivo:", e)
-        
-        if tableros:
-            generar_graphiz(tableros)
 
 def leer_tableros(datos):
-    tableros = None
+    global tableros
     nombre = filas = columnas = estructura = None
 
     for linea in datos:
@@ -57,65 +61,89 @@ def leer_tableros(datos):
             estructura = linea.replace("<estructura>", "").replace("</estructura>", "").strip()
         elif linea.startswith("</maqueta>"):
             if nombre is not None and filas is not None and columnas is not None and estructura is not None:
-                tablero = Tablero(nombre, filas, columnas, estructura)
-                nuevo_nodo = Nodo(tablero)
-                if tableros is None:
-                    tableros = nuevo_nodo
-                else:
-                    actual = tableros
-                    while actual.siguiente:
-                        actual = actual.siguiente
-                    actual.siguiente = nuevo_nodo
+                nuevo_nodo = Nodo(nombre, filas, columnas, estructura)
+                tableros.agregar(nuevo_nodo)
                 # Reiniciar variables para la próxima maqueta
                 nombre = filas = columnas = estructura = None
 
-    return tableros
-
 def mostrar_tableros():
+    mostrar_tableros_ordenados(tableros)
+
+def mostrar_tableros_ordenados(tableros):
+    if not tableros:
+        tk.messagebox.showerror("Error", "No se ha cargado ningún tablero previamente.")
+        return
+
+    def generar_tablero_seleccionado():
+        seleccionado = entrada_nombre.get().strip()  # Obtener el nombre ingresado y eliminar espacios en blanco al inicio y al final
+        if seleccionado:
+            for nodo in tableros:
+                if nodo.nombre == seleccionado:
+                    generar_graphiz(nodo)  # Pasamos el tablero seleccionado como argumento
+                    root.destroy()  # Destruir la ventana principal después de generar el archivo
+                    break  # Terminar el bucle una vez que se haya encontrado el tablero seleccionado
+            else:
+                tk.messagebox.showerror("Error", f"No se encontró ningún tablero con el nombre '{seleccionado}'")
+
     root = tk.Tk()
     root.title("Seleccionar tablero")
 
+    # Centrar la ventana principal
+    window_width = 450  # Ancho de la ventana
+    window_height = 350  # Altura de la ventana
+    screen_width = root.winfo_screenwidth()  # Ancho de la pantalla
+    screen_height = root.winfo_screenheight()  # Altura de la pantalla
+    x_coordinate = (screen_width - window_width) // 2  # Coordenada x para centrar la ventana
+    y_coordinate = (screen_height - window_height) // 2  # Coordenada y para centrar la ventana
+    root.geometry(f"{window_width}x{window_height}+{x_coordinate}+{y_coordinate}")  # Establecer la geometría de la ventana
+
     frame = tk.Frame(root)
-    frame.pack(padx=10, pady=10)
+    frame.pack(expand=True, fill="both", padx=10, pady=10)  # Expandir el Frame para llenar la ventana
 
-    tk.Label(frame, text="Seleccione el tablero a graficar:").pack()
+    tk.Label(frame, text="Maquetas disponibles:").pack()
 
-    var_tablero = tk.StringVar()  # Mover la creación de var_tablero aquí
+    # Obtener los nombres de las maquetas y ordenarlos alfabéticamente
+    nombres_maquetas = [nodo.nombre for nodo in tableros]
+    nombres_maquetas.sort()
 
-    for nodo in tableros_generator(tableros):
-        tk.Radiobutton(frame, text=nodo.tablero.nombre, variable=var_tablero, value=nodo.tablero.nombre).pack(anchor="w")
+    text_maquetas = tk.Text(frame, height=10, width=30)
+    text_maquetas.pack()
+    for nombre in nombres_maquetas:
+        text_maquetas.insert(tk.END, nombre + "\n")
 
-    btn_graficar = tk.Button(frame, text="Graficar", command=lambda: generar_graphiz(tableros))
-    btn_graficar.pack()
+    tk.Label(frame, text="Ingrese el nombre del tablero a graficar:").pack()
+
+    entrada_nombre = tk.Entry(frame)
+    entrada_nombre.pack()
+
+    style = ttk.Style()
+    style.configure("Modern.TButton", foreground="black", background="blue", font=("Helvetica", 12, "bold"))
+    icono_grablab = tk.PhotoImage(file='C:/Users/danis/OneDrive/Documents/Quinto Semestre/IPC2/[IPC2]Proyecto2_202202768/Imagenes/mostrar_lab.png')
+    btn_graficar = ttk.Button(frame, text="Mostrar", cursor='hand2', compound=tk.LEFT, style="Modern.TButton", command=generar_tablero_seleccionado)
+    btn_graficar.pack(pady=20)
 
     root.mainloop()
 
-def tableros_generator(tableros):
-    actual = tableros
-    while actual:
-        yield actual
-        actual = actual.siguiente
 
-def generar_graphiz(tableros):
-    dot_code = "digraph Tableros {\n"
-    actual = tableros
-    while actual:
-        dot_code += f'    subgraph cluster_{actual.tablero.nombre} ' + '{\n'
-        dot_code += '        label="' + actual.tablero.nombre + '"\n'
-        dot_code += '        node [shape=plaintext style=filled]\n'
-        dot_code += '        struct [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">\n'
-        for fila in range(actual.tablero.filas):
-            dot_code += '            <TR>'
-            for columna in range(actual.tablero.columnas):
-                posicion = fila * actual.tablero.columnas + columna
-                if actual.tablero.estructura[posicion] == '*':
-                    dot_code += f'<TD bgcolor="black" fontcolor="white">{actual.tablero.estructura[posicion]}</TD>'
-                else:
-                    dot_code += '<TD></TD>'
-            dot_code += '</TR>\n'
-        dot_code += '        </TABLE>>]\n'
-        dot_code += '    }\n'
-        actual = actual.siguiente
+
+
+def generar_graphiz(tablero):
+    dot_code = f'digraph {tablero.nombre} ' + '{\n'
+    dot_code += '    subgraph cluster_' + tablero.nombre + ' {\n'
+    dot_code += '        label="' + tablero.nombre + '"\n'
+    dot_code += '        node [shape=plaintext style=filled]\n'
+    dot_code += '        struct [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">\n'  # Cambio CELLBORDER a 0
+    for fila in range(tablero.filas):
+        dot_code += '            <TR>'
+        for columna in range(tablero.columnas):
+            posicion = fila * tablero.columnas + columna
+            if tablero.estructura[posicion] == '*':
+                dot_code += f'<TD bgcolor="black" fontcolor="white">{tablero.estructura[posicion]}</TD>'
+            else:
+                dot_code += '<TD></TD>'
+        dot_code += '</TR>\n'
+    dot_code += '        </TABLE>>]\n'
+    dot_code += '    }\n'
     dot_code += "}\n"
 
     dot_file_path = "C:/Users/danis/OneDrive/Documents/Quinto Semestre/IPC2/[IPC2]Proyecto2_202202768/tableros.dot"
@@ -130,17 +158,23 @@ def generar_graphiz(tableros):
     except Exception as e:
         print("Error al generar el archivo PNG:", e)
 
+
+# Inicialización de variables globales
+tableros = None
+tablero_seleccionado = None
+
+# Aplicación principal
+#abrir_archivos()
+#mostrar_tableros()
+
 def imprimir_tableros(tableros):
     actual = tableros
     while actual:
-        print("Nombre:", actual.tablero.nombre)
-        print("Filas:", actual.tablero.filas)
-        print("Columnas:", actual.tablero.columnas)
-        print("Estructura:", actual.tablero.estructura)
+        print("Nombre:", actual.nombre)
+        print("Filas:", actual.filas)
+        print("Columnas:", actual.columnas)
+        print("Estructura:", actual.estructura)
         print("---------------")
         actual = actual.siguiente
-
-#abrir_archivos()
-
 
 
