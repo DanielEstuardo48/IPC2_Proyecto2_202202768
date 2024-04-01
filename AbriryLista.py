@@ -9,7 +9,11 @@ class Nodo:
         self.filas = filas
         self.columnas = columnas
         self.estructura = estructura
+        self.entrada = None
         self.siguiente = None
+
+    def Entrada(self, fila, columna):
+        self.entrada = (fila, columna)
 
 class LinkedList:
     def __init__(self):
@@ -46,11 +50,14 @@ def abrir_archivos():
 def leer_tableros(datos):
     global tableros
     nombre = filas = columnas = estructura = None
+    entrada_fila = entrada_columna = None
+    entrada_flag = False
 
     for linea in datos:
         linea = linea.strip()
         if linea.startswith("<maqueta>"):
             nombre = filas = columnas = estructura = None  # Reiniciar variables para la nueva maqueta
+            entrada_fila = entrada_columna = None  # Reiniciar variables para la nueva maqueta
         elif linea.startswith("<nombre>") and nombre is None:
             nombre = linea.replace("<nombre>", "").replace("</nombre>", "").strip()
         elif linea.startswith("<filas>"):
@@ -59,12 +66,29 @@ def leer_tableros(datos):
             columnas = int(linea.replace("<columnas>", "").replace("</columnas>", "").strip())
         elif linea.startswith("<estructura>"):
             estructura = linea.replace("<estructura>", "").replace("</estructura>", "").strip()
+        elif linea.startswith("<entrada>"):
+            entrada_flag = True
+        elif entrada_flag:
+            if linea.startswith("<fila>"):
+                entrada_fila = int(linea.replace("<fila>", "").replace("</fila>", "").strip())
+            elif linea.startswith("<columna>"):
+                entrada_columna = int(linea.replace("<columna>", "").replace("</columna>", "").strip())
+            elif linea.startswith("</entrada>"):
+                entrada_flag = False
+                if entrada_fila is not None and entrada_columna is not None:
+                    print("Posición de entrada:", entrada_fila, entrada_columna)
         elif linea.startswith("</maqueta>"):
             if nombre is not None and filas is not None and columnas is not None and estructura is not None:
                 nuevo_nodo = Nodo(nombre, filas, columnas, estructura)
+                if entrada_fila is not None and entrada_columna is not None:
+                    nuevo_nodo.Entrada(entrada_fila, entrada_columna)
                 tableros.agregar(nuevo_nodo)
                 # Reiniciar variables para la próxima maqueta
                 nombre = filas = columnas = estructura = None
+                entrada_fila = entrada_columna = None
+
+
+
 
 def mostrar_tableros():
     mostrar_tableros_ordenados(tableros)
@@ -137,7 +161,9 @@ def generar_graphiz(tablero):
         dot_code += '            <TR>'
         for columna in range(tablero.columnas):
             posicion = fila * tablero.columnas + columna
-            if tablero.estructura[posicion] == '*':
+            if (fila, columna) == tablero.entrada:
+                dot_code += f'<TD bgcolor="green" fontcolor="white">-{tablero.estructura[posicion]}</TD>'
+            elif tablero.estructura[posicion] == '*':
                 dot_code += f'<TD bgcolor="black" fontcolor="white">{tablero.estructura[posicion]}</TD>'
             else:
                 dot_code += '<TD></TD>'
@@ -159,13 +185,16 @@ def generar_graphiz(tablero):
         print("Error al generar el archivo PNG:", e)
 
 
+
+
+
 # Inicialización de variables globales
 tableros = None
 tablero_seleccionado = None
 
 # Aplicación principal
-#abrir_archivos()
-#mostrar_tableros()
+abrir_archivos()
+mostrar_tableros()
 
 def imprimir_tableros(tableros):
     actual = tableros
@@ -176,5 +205,4 @@ def imprimir_tableros(tableros):
         print("Estructura:", actual.estructura)
         print("---------------")
         actual = actual.siguiente
-
 
