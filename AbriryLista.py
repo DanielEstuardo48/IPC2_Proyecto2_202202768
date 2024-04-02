@@ -10,36 +10,11 @@ class Nodo:
         self.columnas = columnas
         self.estructura = estructura
         self.entrada = None
-        #self.nombreob = None
-        self.objetoFC = ObjetoLinkedList()
-        #self.objetoFC = None
-        '''self.objetivo1_nombre = None
-        self.objetivo1_fila = None
-        self.objetivo1_columna = None
-        self.objetivo2_nombre = None
-        self.objetivo2_fila = None
-        self.objetivo2_columna = None'''
+        self.objetos = ObjetoLinkedList()
         self.siguiente = None
-        # Definir variables para más objetivos si es necesario
 
     def Entrada(self, fila, columna):
         self.entrada = (fila, columna)
-    
-    def ObjetoFC(self, nombre, fila, columna):
-        #self.nombreob = nombre
-        # Aquí deberías agregar el objeto a la lista enlazada en lugar de asignar una tupla
-        self.objetoFC.agregar(nombre, fila, columna)
-
-    #def ObjetoFC(self, nombre, fila, columna):
-    #    self.nombreob = nombre
-    #    self.objetoFC = (fila, columna)
-
-class ObjetoNodo:
-    def __init__(self, nombre, fila, columna):
-        self.nombre = nombre
-        self.fila = fila
-        self.columna = columna
-        self.siguiente = None
 
 class ObjetoLinkedList:
     def __init__(self):
@@ -61,17 +36,12 @@ class ObjetoLinkedList:
             yield current
             current = current.siguiente
 
-
-    '''def agregar_objetivo(self, nombre, fila, columna):
-        if self.objetivo1_nombre is None:
-            self.objetivo1_nombre = nombre
-            self.objetivo1_fila = fila
-            self.objetivo1_columna = columna
-        elif self.objetivo2_nombre is None:
-            self.objetivo2_nombre = nombre
-            self.objetivo2_fila = fila
-            self.objetivo2_columna = columna
-        # Agregar más lógica para más objetivos si es necesario'''
+class ObjetoNodo:
+    def __init__(self, nombre, fila, columna):
+        self.nombre = nombre
+        self.fila = fila
+        self.columna = columna
+        self.siguiente = None
 
 
 class LinkedList:
@@ -112,17 +82,14 @@ def leer_tableros(datos):
     entrada_fila = entrada_columna = None
     entrada_flag = False
     objetivo_flag = False
-    objetoFC = ObjetoLinkedList()
-    #objetivo_nombre = objetivo_fila = objetivo_columna = None
-    #objetivo_flag = False  # Inicializamos la variable objetivo_flag
 
     for linea in datos:
         linea = linea.strip()
         if linea.startswith("<maqueta>"):
             nombre = filas = columnas = estructura = None  # Reiniciar variables para la nueva maqueta
             entrada_fila = entrada_columna = None  # Reiniciar variables para la nueva maqueta
-            objetivo_nombre = objetivo_fila = objetivo_columna = None  # Reiniciar variables para el objetivo
             objetivo_flag = False  # Reiniciar la variable objetivo_flag
+            objetoFC = ObjetoLinkedList()  # Inicializar la lista enlazada de objetos para este tablero
         elif linea.startswith("<nombre>") and nombre is None:
             nombre = linea.replace("<nombre>", "").replace("</nombre>", "").strip()
         elif linea.startswith("<filas>"):
@@ -144,12 +111,8 @@ def leer_tableros(datos):
                     print("Posición de entrada:", entrada_fila, entrada_columna)
         elif linea.startswith("<objetivo>"):
             objetivo_flag = True
-            objetivo_nombre = objetivo_fila = objetivo_columna = None  # Reiniciar las variables de objetivo
         elif linea.startswith("</objetivo>"):
             objetivo_flag = False
-            if objetivo_nombre is not None and objetivo_fila is not None and objetivo_columna is not None:
-                print(f"Objeto {objetivo_nombre} encontrado en la fila {objetivo_fila} y columna {objetivo_columna}.")
-                objetoFC.agregar(objetivo_nombre, objetivo_fila, objetivo_columna)  # Agregar objeto a la lista enlazada
         elif objetivo_flag:
             if linea.startswith("<nombre>"):
                 objetivo_nombre = linea.replace("<nombre>", "").replace("</nombre>", "").strip()
@@ -157,20 +120,18 @@ def leer_tableros(datos):
                 objetivo_fila = int(linea.replace("<fila>", "").replace("</fila>", "").strip())
             elif linea.startswith("<columna>"):
                 objetivo_columna = int(linea.replace("<columna>", "").replace("</columna>", "").strip())
+                objetoFC.agregar(objetivo_nombre, objetivo_fila, objetivo_columna)  # Agregar objeto a la lista enlazada
         elif linea.startswith("</maqueta>"):
             if nombre is not None and filas is not None and columnas is not None and estructura is not None:
                 nuevo_nodo = Nodo(nombre, filas, columnas, estructura)
                 if entrada_fila is not None and entrada_columna is not None:
                     nuevo_nodo.Entrada(entrada_fila, entrada_columna)
-                nuevo_nodo.objetoFC = objetoFC
-                #if objetivo_nombre is not None and objetivo_fila is not None and objetivo_columna is not None:
-                #    nuevo_nodo.ObjetoFC(objetivo_nombre, objetivo_fila, objetivo_columna)
-                    #nuevo_nodo.agregar_objetivo(objetivo_nombre, objetivo_fila, objetivo_columna)
+                nuevo_nodo.objetos = objetoFC  # Asignar la lista de objetos al tablero
                 tableros.agregar(nuevo_nodo)
                 # Reiniciar variables para la próxima maqueta
                 nombre = filas = columnas = estructura = None
                 entrada_fila = entrada_columna = None
-                #objetivo_nombre = objetivo_fila = objetivo_columna = None
+
 
 
 
@@ -253,7 +214,7 @@ def generar_graphiz(tablero):
                 dot_code += f'<TD bgcolor="green" fontcolor="white">-{tablero.estructura[posicion]}</TD>'
             else:
                 objeto_encontrado = False
-                current_objeto = tablero.objetoFC.head
+                current_objeto = tablero.objetos.head
                 while current_objeto:
                     if (fila, columna) == (current_objeto.fila, current_objeto.columna):
                         dot_code += f'<TD bgcolor="orange" fontcolor="black">{current_objeto.nombre}</TD>'
@@ -283,6 +244,7 @@ def generar_graphiz(tablero):
         print(f"Se ha generado el archivo '{png_file_path}' del tablero seleccionado.")
     except Exception as e:
         print("Error al generar el archivo PNG:", e)
+
 
 
 
