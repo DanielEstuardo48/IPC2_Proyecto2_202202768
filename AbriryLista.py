@@ -39,21 +39,12 @@ class ObjetoLinkedList:
                 current = current.siguiente
             current.siguiente = ObjetoNodo(objeto)
 
-    def to_list(self):
-        current = self.head
-        result = []
-        while current:
-            result.append(current)
-            current = current.siguiente
-        return result
-
     
     def __iter__(self):
         current = self.head
         while current:
             yield current
             current = current.siguiente
-
 class ObjetoNodo:
     def __init__(self, nombre, fila, columna):
         self.nombre = nombre
@@ -139,7 +130,6 @@ class ListNode:
     def __init__(self, value):
         self.value = value
         self.next = None
-
 class LinkedoList:
     def __init__(self):
         self.head = None
@@ -171,7 +161,7 @@ class LinkedoList:
     def __iter__(self):
         current = self.head
         while current:
-            yield current.movimiento  # Devolver la tupla de coordenadas
+            yield current.movimiento
             current = current.siguiente
 class MovimientoNode:
     def __init__(self, movimiento, siguiente=None):
@@ -486,17 +476,17 @@ def generar_camino(tablero):
 
                 if not visitado:
                     nuevos_objetos_restantes = objetos_restantes.copy()
-                    objeto_actual = buscar_objeto(tablero.objetos.to_list(), nueva_fila, nueva_columna)
+                    objeto_actual = buscar_objeto(tablero.objetos, nueva_fila, nueva_columna)
                     if objeto_actual and objeto_actual in nuevos_objetos_restantes:
                         nuevos_objetos_restantes.remove(objeto_actual)
                     actual.append(nueva_fila, nueva_columna)
                     visitados.append((nueva_fila, nueva_columna))
                     dfs(nueva_fila, nueva_columna, actual, visitados, nuevos_objetos_restantes)
-                    actual.pop()  # Retirar el último nodo agregado
-                    visitados.pop()  # Retirar el último nodo agregado de visitados
+                    actual.pop()
+                    visitados.pop()
 
     entrada_fila, entrada_columna = tablero.entrada
-    dfs(entrada_fila, entrada_columna, CaminoLinkedList(), LinkedoList(), set(tablero.objetos.to_list()))
+    dfs(entrada_fila, entrada_columna, CaminoLinkedList(), LinkedoList(), set(tablero.objetos))
 
     return mejor_camino
 
